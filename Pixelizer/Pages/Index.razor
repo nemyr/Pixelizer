@@ -1,4 +1,6 @@
 ﻿@page "/"
+@using System.Drawing;
+@using System.Drawing.Imaging;
 
 <PageTitle>Index</PageTitle>
 
@@ -9,7 +11,7 @@
             <ButtonTemplate>
                 <MudButton HtmlTag="label"
                            Variant="Variant.Filled"
-                           Color="Color.Primary"
+                           Color="MudBlazor.Color.Primary"
                            StartIcon="@Icons.Material.Filled.CloudUpload"
                            for="uploadFileInp">
                         Upload Files
@@ -29,24 +31,26 @@
     string SourceImage = "Files/placeholder.png";
     string ResultImage = "Files/placeholder.png";
 
-    IBrowserFile file = null;
-    byte[] uploadedData;
-
     private async Task UploadFiles(InputFileChangeEventArgs e)
     {
         try
         {
             var file = e.File;
             var readStream = file.OpenReadStream(file.Size);
-            uploadedData = new byte[file.Size];
+            var uploadedData = new byte[file.Size];
 
             int sum = 0;
             int count;
 
             while ((count = await readStream.ReadAsync(uploadedData, sum, (int) file.Size - sum)) > 0)
                 sum += count;
+            readStream.Close();
+
+            Stream im = new MemoryStream(uploadedData);
+            ProcessImage(im);
 
             SourceImage = ByteArrayToImage(uploadedData, Path.GetExtension(file.Name).Replace(".",""));
+
         } catch (Exception ex)
         {
             Console.WriteLine(ex.Message);
@@ -57,5 +61,43 @@
     {
         string result = Convert.ToBase64String(source);
         return $"data:image/{extension};base64,{result}";
+    }
+
+    private void ProcessImage(Stream imgStream)
+    {
+        int quality = 75;
+
+        using var bm = new Bitmap(System.Drawing.Image.FromStream(imgStream));
+        using var graphics = Graphics.FromImage(bm);
+        System.Drawing.Color col = System.Drawing.Color.FromArgb(0x000000);
+        Brush br = new SolidBrush(bm.Palette.Entries.FirstOrDefault(col));
+        var p = new Pen(br);
+        //p.Width = 100;
+
+        graphics.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighSpeed;
+        graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.Bicubic;
+        graphics.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
+        for (int x = 0; x < bm.Width; x++)
+            for(int y = 0; y < bm.Height; y++)
+            {
+                var px = bm.GetPixel(x, y);
+                var t = System.Drawing.Color.FromArgb(px.G, px.R, px.B);
+                bm.SetPixel(x, y, t);
+            }
+//      graphics.DrawRectangle(p, 1, 1, 100, 100);
+
+        using var output = new MemoryStream();
+
+        var qualityParamId = Encoder.Quality;
+        var encoderParameters = new EncoderParameters(1);
+        encoderParameters.Param[0] = new EncoderParameter(qualityParamId, quality);
+
+        var codec = ImageCodecInfo.GetImageDecoders()
+            .FirstOrDefault(codec => codec.FormatID == ImageFormat.Jpeg.Guid);
+
+        bm.Save(output, codec, encoderParameters);
+
+        ResultImage = ByteArrayToImage(output.ToArray(), codec.FormatDescription);
+
     }
 }
