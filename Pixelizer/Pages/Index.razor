@@ -2,9 +2,60 @@
 
 <PageTitle>Index</PageTitle>
 
-<MudImage Src="Files/placeholder.png" Height="400"> </MudImage>
-<MudImage Src="Files/placeholder.png" Height="400"> </MudImage>
+<MudGrid>
+    <MudItem xs="12">
+        <InputFile id="uploadFileInp" OnChange="async (e) => await UploadFiles(e)" hidden />
+        <MudFileUpload T="IBrowserFile" >
+            <ButtonTemplate>
+                <MudButton HtmlTag="label"
+                           Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.CloudUpload"
+                           for="uploadFileInp">
+                        Upload Files
+                </MudButton>
+            </ButtonTemplate>
+        </MudFileUpload>
+    </MudItem>
+    <MudItem xs="6">
+        <MudImage Src="@SourceImage" Height="400"> </MudImage>
+    </MudItem>
+    <MudItem xs="6">
+        <MudImage Src="@ResultImage" Height="400"> </MudImage>
+    </MudItem>
+</MudGrid>
 
-<MudText Typo="Typo.h3" GutterBottom="true">Hello, world!</MudText>
-<MudText Class="mb-8">Welcome to your new app, powered by MudBlazor!</MudText>
-<MudAlert Severity="Severity.Normal">You can find documentation and examples on our website here: <MudLink Href="https://mudblazor.com" Typo="Typo.body2" Color="Color.Inherit"><b>www.mudblazor.com</b></MudLink></MudAlert>
+@code{
+    string SourceImage = "Files/placeholder.png";
+    string ResultImage = "Files/placeholder.png";
+
+    IBrowserFile file = null;
+    byte[] uploadedData;
+
+    private async Task UploadFiles(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var file = e.File;
+            var readStream = file.OpenReadStream(file.Size);
+            uploadedData = new byte[file.Size];
+
+            int sum = 0;
+            int count;
+
+            while ((count = await readStream.ReadAsync(uploadedData, sum, (int) file.Size - sum)) > 0)
+                sum += count;
+
+            SourceImage = ByteArrayToImage(uploadedData, Path.GetExtension(file.Name).Replace(".",""));
+        } catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    private string ByteArrayToImage(byte[] source, string extension)
+    {
+        string result = Convert.ToBase64String(source);
+        return $"data:image/{extension};base64,{result}";
+    }
+}
