@@ -1,0 +1,37 @@
+﻿@namespace Components
+@using Pixelizer.Data;
+
+<InputFile id="uploadFileInp" OnChange="async (e) => await UploadFiles(e)" hidden />
+<MudFileUpload T="IBrowserFile" >
+    <ButtonTemplate>
+        <MudButton HtmlTag="label"
+                   Variant="Variant.Filled"
+                   Color="MudBlazor.Color.Primary"
+                   StartIcon="@Icons.Material.Filled.CloudUpload"
+                   for="uploadFileInp">
+                Upload Files
+        </MudButton>
+    </ButtonTemplate>
+</MudFileUpload>
+
+@code {
+
+    [Parameter]
+    public EventCallback<FileData> OnFileChange { get; set; }
+
+    private async Task UploadFiles(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var file = e.File;
+            var readStream = file.OpenReadStream(file.Size);
+            var im = new MemoryStream();
+            await readStream.CopyToAsync(im);
+            await OnFileChange.InvokeAsync(new FileData { Data = im, FileName = file.Name });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+}

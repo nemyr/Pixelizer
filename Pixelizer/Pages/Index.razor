@@ -1,23 +1,13 @@
 ﻿@page "/"
 @using System.Drawing;
 @using System.Drawing.Imaging;
+@using Components;
+@using Pixelizer.Data;
 
 <PageTitle>Index</PageTitle>
-
 <MudGrid>
     <MudItem xs="12">
-        <InputFile id="uploadFileInp" OnChange="async (e) => await UploadFiles(e)" hidden />
-        <MudFileUpload T="IBrowserFile" >
-            <ButtonTemplate>
-                <MudButton HtmlTag="label"
-                           Variant="Variant.Filled"
-                           Color="MudBlazor.Color.Primary"
-                           StartIcon="@Icons.Material.Filled.CloudUpload"
-                           for="uploadFileInp">
-                        Upload Files
-                </MudButton>
-            </ButtonTemplate>
-        </MudFileUpload>
+        <FileUploader OnFileChange="UploadFiles" />
     </MudItem>
     <MudItem xs="6">
         <MudImage Src="@SourceImage" Height="400"> </MudImage>
@@ -31,26 +21,12 @@
     string SourceImage = "Files/placeholder.png";
     string ResultImage = "Files/placeholder.png";
 
-    private async Task UploadFiles(InputFileChangeEventArgs e)
+    private async Task UploadFiles(FileData fileData)
     {
         try
         {
-            var file = e.File;
-            var readStream = file.OpenReadStream(file.Size);
-            var uploadedData = new byte[file.Size];
-
-            int sum = 0;
-            int count;
-
-            while ((count = await readStream.ReadAsync(uploadedData, sum, (int) file.Size - sum)) > 0)
-                sum += count;
-            readStream.Close();
-
-            Stream im = new MemoryStream(uploadedData);
-            ProcessImage(im);
-
-            SourceImage = ByteArrayToImage(uploadedData, Path.GetExtension(file.Name).Replace(".",""));
-
+            SourceImage = ByteArrayToImage(fileData.Data.ToArray(), Path.GetExtension(fileData.FileName).Replace(".",""));
+            ProcessImage(fileData.Data);
         } catch (Exception ex)
         {
             Console.WriteLine(ex.Message);
