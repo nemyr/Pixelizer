@@ -2,6 +2,7 @@
 @using System.Drawing;
 @using System.Drawing.Imaging;
 @using Components;
+@using Pixelizer.Classes;
 @using Pixelizer.Data;
 
 <PageTitle>Index</PageTitle>
@@ -9,6 +10,22 @@
     <MudItem xs="12">
         <FileUploader OnFileChange="UploadFiles" />
     </MudItem>
+    <MudItem xs="4">
+        <MudSlider T="float" @bind-Value="settings.GrayscaleLevels.Red" Max="1.0f" Step="0.01f">
+            Red: @settings.GrayscaleLevels.Red.ToString("F2")
+        </MudSlider>
+        <MudSlider T="float" @bind-Value="settings.GrayscaleLevels.Green" Max="1.0f" Step="0.01f">
+            Green: @settings.GrayscaleLevels.Green.ToString("F2")
+        </MudSlider>
+        <MudSlider T="float" @bind-Value="settings.GrayscaleLevels.Blue" Max="1.0f" Step="0.01f">
+            Blue: @settings.GrayscaleLevels.Blue.ToString("F2")
+        </MudSlider>
+    </MudItem>
+
+    <MudItem xs="8">
+        <MudButton OnClick="ProcessImage">process</MudButton>
+    </MudItem>
+
     <MudItem xs="6">
         <MudImage Src="@SourceImage" Height="400"> </MudImage>
     </MudItem>
@@ -18,6 +35,9 @@
 </MudGrid>
 
 @code{
+    public ProcessingSettings settings = new ProcessingSettings();
+    private ImageProcessor imageProcessor; 
+
     string SourceImage = "Files/placeholder.png";
     string ResultImage = "Files/placeholder.png";
 
@@ -26,7 +46,9 @@
         try
         {
             SourceImage = ByteArrayToImage(fileData.Data.ToArray(), Path.GetExtension(fileData.FileName).Replace(".",""));
-            ProcessImage(fileData.Data);
+            imageProcessor = new ImageProcessor(settings, fileData);
+            ResultImage = imageProcessor.ProcessImage().AsBase64();
+            //ProcessImage(fileData.Data);
         } catch (Exception ex)
         {
             Console.WriteLine(ex.Message);
@@ -39,8 +61,12 @@
         return $"data:image/{extension};base64,{result}";
     }
 
-    private void ProcessImage(Stream imgStream)
+    private void ProcessImage()
     {
+        if (imageProcessor == null)
+            return;
+        ResultImage = imageProcessor.ProcessImage().AsBase64();
+        /*
         int quality = 75;
 
         using var bm = new Bitmap(System.Drawing.Image.FromStream(imgStream));
@@ -57,7 +83,11 @@
             for(int y = 0; y < bm.Height; y++)
             {
                 var px = bm.GetPixel(x, y);
-                var t = System.Drawing.Color.FromArgb(px.G, px.R, px.B);
+                var c = (px.R + px.G + px.B) / 3f;
+                var t = System.Drawing.Color.FromArgb( 
+                    (int)(settings.GrayscaleLevels.Red /3f * c), 
+                    (int)(settings.GrayscaleLevels.Green /3f * c),
+                    (int)(settings.GrayscaleLevels.Blue /3f * c));
                 bm.SetPixel(x, y, t);
             }
 //      graphics.DrawRectangle(p, 1, 1, 100, 100);
@@ -74,6 +104,6 @@
         bm.Save(output, codec, encoderParameters);
 
         ResultImage = ByteArrayToImage(output.ToArray(), codec.FormatDescription);
-
+        */
     }
 }
