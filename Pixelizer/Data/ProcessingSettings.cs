@@ -6,7 +6,7 @@
         public int Width { get; set; }
         public int Height { get; set; }
         public bool KeepAspectRatio { get; set; }
-        public int Colors { get; set; }
+        public int Colors { get; set; } = 4;
         public GrayscaleLevels GrayscaleLevels { get; set; } = new GrayscaleLevels();
     }
 }

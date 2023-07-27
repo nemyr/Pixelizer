@@ -25,6 +25,13 @@
     <MudItem xs="8">
         <MudButton OnClick="ProcessImage">process</MudButton>
     </MudItem>
+    <MudItem xs="12">
+        @if (imageProcessor != null)
+            @foreach (var color in imageProcessor.Palette)
+            {
+                <MudPaper Width="20" Height="10" Class="d-flex flex-column align-center justify-center mud-width-full py-8" Style="@($"background:#{color.ToArgb().ToString("X")};")"></MudPaper>
+            }
+    </MudItem>
 
     <MudItem xs="6">
         <MudImage Src="@SourceImage" Height="400"> </MudImage>
@@ -32,6 +39,7 @@
     <MudItem xs="6">
         <MudImage Src="@ResultImage" Height="400"> </MudImage>
     </MudItem>
+    
 </MudGrid>
 
 @code{
@@ -66,44 +74,6 @@
         if (imageProcessor == null)
             return;
         ResultImage = imageProcessor.ProcessImage().AsBase64();
-        /*
-        int quality = 75;
-
-        using var bm = new Bitmap(System.Drawing.Image.FromStream(imgStream));
-        using var graphics = Graphics.FromImage(bm);
-        System.Drawing.Color col = System.Drawing.Color.FromArgb(0x000000);
-        Brush br = new SolidBrush(bm.Palette.Entries.FirstOrDefault(col));
-        var p = new Pen(br);
-        //p.Width = 100;
-
-        graphics.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighSpeed;
-        graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.Bicubic;
-        graphics.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
-        for (int x = 0; x < bm.Width; x++)
-            for(int y = 0; y < bm.Height; y++)
-            {
-                var px = bm.GetPixel(x, y);
-                var c = (px.R + px.G + px.B) / 3f;
-                var t = System.Drawing.Color.FromArgb( 
-                    (int)(settings.GrayscaleLevels.Red /3f * c), 
-                    (int)(settings.GrayscaleLevels.Green /3f * c),
-                    (int)(settings.GrayscaleLevels.Blue /3f * c));
-                bm.SetPixel(x, y, t);
-            }
-//      graphics.DrawRectangle(p, 1, 1, 100, 100);
-
-        using var output = new MemoryStream();
-
-        var qualityParamId = Encoder.Quality;
-        var encoderParameters = new EncoderParameters(1);
-        encoderParameters.Param[0] = new EncoderParameter(qualityParamId, quality);
-
-        var codec = ImageCodecInfo.GetImageDecoders()
-            .FirstOrDefault(codec => codec.FormatID == ImageFormat.Jpeg.Guid);
-
-        bm.Save(output, codec, encoderParameters);
-
-        ResultImage = ByteArrayToImage(output.ToArray(), codec.FormatDescription);
-        */
+        StateHasChanged();
     }
 }
