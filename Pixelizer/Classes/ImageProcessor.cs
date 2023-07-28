@@ -26,7 +26,7 @@ namespace Pixelizer.Classes
 
         private List<Color> GetColors(Bitmap bm)
         {
-            HashSet<Color> colors = new ();
+            List<Color> colors = new ();
             for (int x = 0;  x < bm.Width; x++)
                 for (int y = 0; y < bm.Height; y++)
                 {
@@ -50,18 +50,28 @@ namespace Pixelizer.Classes
             List<Color> palette = new List<Color>();
             for (int i = 0; i < colorsCount - 1; i++)
             {
-                Dictionary<string, int> medians = new Dictionary<string, int>
+                Dictionary<string, int> colorComponentRanges = new Dictionary<string, int>
                 {
                     { "R", colors.Max(c => c.R) - colors.Min(c => c.R) },
                     { "G", colors.Max(c => c.G) - colors.Min(c => c.G) },
                     { "B", colors.Max(c => c.B) - colors.Min(c => c.B) }
                 };
 
-                var maxMedian = medians.Aggregate((m1, m2) => m1.Value > m2.Value ? m1 : m2);
-                var colorGroups = colors.GroupBy(c => c.GetColorComponent(maxMedian.Key) > maxMedian.Value/2.0);
+                var colorRange = colorComponentRanges.Aggregate((m1, m2) => m1.Value > m2.Value ? m1 : m2);
+
+                //var colorGroups = colors.GroupBy(c => c.GetColorComponent(colorRange.Key) > colorRange.Value/2.0);
+                colors = colors.OrderBy(c => c.GetColorComponent(colorRange.Key)).ToList();
+                /*
+                var median = colors[colors.Count / 2].GetColorComponent(colorRange.Key);
+                var colorGroups = colors.GroupBy(c => c.GetColorComponent(colorRange.Key) > median);
                 var newColorPart = colorGroups.Aggregate((c1, c2) => c1.Count() < c2.Count()? c1 : c2);
                 palette.Add(GetAverageColor(newColorPart));
                 colors = colorGroups.Aggregate((c1, c2) => c1.Count() > c2.Count() ? c1 : c2).ToList();
+                */
+                var colorChunks = colors.Chunk(colors.Count / 2);
+                //var newColorPart = colors.GetRange(0, colors.Count / 2);
+                palette.Add(GetAverageColor(colorChunks.Last()));
+                colors = colorChunks.First().ToList();
             }
             palette.Add(GetAverageColor(colors));
             return palette;

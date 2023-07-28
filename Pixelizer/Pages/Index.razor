@@ -21,16 +21,24 @@
             Blue: @settings.GrayscaleLevels.Blue.ToString("F2")
         </MudSlider>
     </MudItem>
-
-    <MudItem xs="8">
+    <MudItem xs="4">
+        <MudSlider T="int" @bind-Value="settings.Colors" Min="2" Max="15" Step="1">
+            Number of colors: @settings.Colors.ToString()
+        </MudSlider>
+    </MudItem>
+    <MudItem xs="4">
         <MudButton OnClick="ProcessImage">process</MudButton>
     </MudItem>
     <MudItem xs="12">
-        @if (imageProcessor != null)
-            @foreach (var color in imageProcessor.Palette)
-            {
-                <MudPaper Width="20" Height="10" Class="d-flex flex-column align-center justify-center mud-width-full py-8" Style="@($"background:#{color.ToArgb().ToString("X")};")"></MudPaper>
-            }
+        <MudGrid Justify="Justify.FlexStart">
+            @if (imageProcessor != null)
+                @foreach (var color in imageProcessor.Palette)
+                {
+                    <MudItem xs="1">
+                        <MudPaper Height="10px" Class="d-flex flex-column align-center justify-center mud-width-full py-8" Style="@($"background:rgb({color.R}, {color.G}, {color.B});")"></MudPaper>
+                    </MudItem>
+                }
+        </MudGrid>
     </MudItem>
 
     <MudItem xs="6">
