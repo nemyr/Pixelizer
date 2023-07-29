@@ -35,6 +35,9 @@ namespace Pixelizer.Classes
             return colors.ToList();
         }
 
+
+        
+
         private Color GetAverageColor(IEnumerable<Color> colors)
         {
             return Color.FromArgb(
@@ -44,49 +47,91 @@ namespace Pixelizer.Classes
                     );
         }
 
+        /*
+        private List<Color> GetPalette(int colorsCount, List<Color> colors)
+        {
+            //var colorsByCount = colors.GroupBy(c => c.Name);//.Select(g => new { Color = g.Key, Count = g.Count() });
 
+            return colors.ToList();
+
+
+        }
+        */
         private List<Color> GetPalette(int colorsCount, List<Color> colors)
         {
             List<Color> palette = new List<Color>();
             for (int i = 0; i < colorsCount - 1; i++)
             {
-                Dictionary<string, int> colorComponentRanges = new Dictionary<string, int>
-                {
-                    { "R", colors.Max(c => c.R) - colors.Min(c => c.R) },
-                    { "G", colors.Max(c => c.G) - colors.Min(c => c.G) },
-                    { "B", colors.Max(c => c.B) - colors.Min(c => c.B) }
-                };
+                Dictionary<string, int> colorComponentRanges = GetColorsRange(colors);
 
-                var colorRange = colorComponentRanges.Aggregate((m1, m2) => m1.Value > m2.Value ? m1 : m2);
+                KeyValuePair<string, int> colorRange = GetMaxColorRange(colorComponentRanges);
 
-                //var colorGroups = colors.GroupBy(c => c.GetColorComponent(colorRange.Key) > colorRange.Value/2.0);
                 colors = colors.OrderBy(c => c.GetColorComponent(colorRange.Key)).ToList();
-                /*
-                var median = colors[colors.Count / 2].GetColorComponent(colorRange.Key);
-                var colorGroups = colors.GroupBy(c => c.GetColorComponent(colorRange.Key) > median);
-                var newColorPart = colorGroups.Aggregate((c1, c2) => c1.Count() < c2.Count()? c1 : c2);
-                palette.Add(GetAverageColor(newColorPart));
-                colors = colorGroups.Aggregate((c1, c2) => c1.Count() > c2.Count() ? c1 : c2).ToList();
-                */
-                var colorChunks = colors.Chunk(colors.Count / 2);
-                //var newColorPart = colors.GetRange(0, colors.Count / 2);
-                palette.Add(GetAverageColor(colorChunks.Last()));
-                colors = colorChunks.First().ToList();
+
+                var mid = colors.Count / 2;
+                var median = (colors.Count % 2 != 0) 
+                    ? colors[mid].GetColorComponent(colorRange.Key) 
+                    : (colors[mid].GetColorComponent(colorRange.Key) + colors[mid-1].GetColorComponent(colorRange.Key)) / 2;
+
+                var aboveMedianColors = colors.TakeWhile(c => c.GetColorComponent(colorRange.Key) < median).ToList();
+                var belowMedianColors = colors.Skip(aboveMedianColors.Count).ToList();
+                (var colorsForPalette, colors) =
+                    GetMaxColorRange(GetColorsRange(aboveMedianColors)).Value < GetMaxColorRange(GetColorsRange(belowMedianColors)).Value
+                    ? (aboveMedianColors, belowMedianColors) : (belowMedianColors, aboveMedianColors);
+                palette.Add(GetAverageColor(colorsForPalette));
             }
             palette.Add(GetAverageColor(colors));
             return palette;
-
         }
 
+        private static KeyValuePair<string, int> GetMaxColorRange(Dictionary<string, int> colorComponentRanges)
+        {
+            return colorComponentRanges.OrderByDescending(c => c.Value).First();
+        }
+
+        private static Dictionary<string, int> GetColorsRange(List<Color> colors)
+        {
+            return new Dictionary<string, int>
+                {
+                    { "R", (int) Math.Round((colors.Max(c => c.R) - colors.Min(c => c.R)) * 0.2126)},
+                    { "G", (int) Math.Round((colors.Max(c => c.G) - colors.Min(c => c.G)) * 0.7152)},
+                    { "B", (int) Math.Round((colors.Max(c => c.B) - colors.Min(c => c.B)) * 0.0722)}
+                };
+        }
+        
         public ImageProcessor ProcessImage()
         {
             using var _bitmap = new Bitmap(Image.FromStream(_fileData.Data));
             var colors = GetColors(_bitmap);
-
-            _palette = GetPalette(_settings.Colors, colors);
+            int pixelsPerWidth = _bitmap.Width / _settings.Width;
+            int pixelsPerHeight = _bitmap.Height / _settings.Height;
+            
+            using var resultBitmap = new Bitmap(pixelsPerWidth * _settings.Width, pixelsPerHeight* _settings.Height );
+            using var graphics = Graphics.FromImage(resultBitmap);
+            graphics.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighSpeed;
+            graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.Bicubic;
+            graphics.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
+            //_palette = GetPalette(_settings.Colors, colors);
 
             //todo: here need to be actual processing
 
+            for (var rx = 0 ; rx < _settings.Width; rx++)
+                for (var ry = 0 ; ry < _settings.Height; ry++)
+                {
+                    List<Color> colorsInPixel = new List<Color>();
+                    for(var x = rx * pixelsPerWidth ; x < rx * pixelsPerWidth + pixelsPerWidth; x++)
+                        for (var y = ry * pixelsPerHeight ; y < ry * pixelsPerHeight + pixelsPerHeight; y++)
+                        {
+                            colorsInPixel.Add(_bitmap.GetPixel(x, y));
+                        }
+                    var pixelColor = GetAverageColor(colorsInPixel);
+
+                    Brush brush = new SolidBrush(pixelColor);
+                    Pen pen = new Pen(brush, Math.Max(pixelsPerWidth, pixelsPerHeight));
+                    graphics.DrawRectangle(pen, rx * pixelsPerWidth, ry * pixelsPerHeight, pixelsPerWidth, pixelsPerHeight);
+                }
+
+            /*
             for (int x = 0; x < _bitmap.Width; x++)
                 for (int y = 0; y < _bitmap.Height; y++)
                 {
@@ -99,7 +144,7 @@ namespace Pixelizer.Classes
                     t.Equals (t);
                 }
             //      graphics.DrawRectangle(p, 1, 1, 100, 100);
-
+            */
             using var output = new MemoryStream();
 
             var qualityParamId = Encoder.Quality;
@@ -109,7 +154,7 @@ namespace Pixelizer.Classes
             var codec = ImageCodecInfo.GetImageDecoders()
                 .FirstOrDefault(codec => codec.FormatID == ImageFormat.Jpeg.Guid);
 
-            _bitmap.Save(output, codec, encoderParameters);
+            resultBitmap.Save(output, codec, encoderParameters);
 
             _resultImage = output.ToArray();
             return this;

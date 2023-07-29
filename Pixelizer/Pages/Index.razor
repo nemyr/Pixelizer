@@ -26,6 +26,14 @@
             Number of colors: @settings.Colors.ToString()
         </MudSlider>
     </MudItem>
+    <MudItem xs="12">
+        <MudSlider T="int" @bind-Value="settings.Width" Min="10" Max="80">
+            Width: @settings.Width
+        </MudSlider>
+        <MudSlider T="int" @bind-Value="settings.Height" Min="10" Max="80">
+            Height: @settings.Height
+        </MudSlider>
+    </MudItem>
     <MudItem xs="4">
         <MudButton OnClick="ProcessImage">process</MudButton>
     </MudItem>
