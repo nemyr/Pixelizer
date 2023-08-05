@@ -14,5 +14,13 @@ namespace Pixelizer.Classes
                 _ => throw new NotSupportedException()
             };
         }
+
+        public static double GetDistance(this Color c, Color anotherColor)
+        {
+            return Math.Sqrt(
+                Math.Pow(c.R - anotherColor.R, 2) + 
+                Math.Pow(c.G - anotherColor.G, 2) + 
+                Math.Pow(c.B - anotherColor.B, 2));
+        }
     }
 }

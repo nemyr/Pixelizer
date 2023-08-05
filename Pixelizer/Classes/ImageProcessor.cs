@@ -8,7 +8,7 @@ namespace Pixelizer.Classes
     {
         private byte[] _resultImage;
         private FileData _fileData;
-        private List<Color> _palette = new List<Color>(0);
+        private List<Color> _palette = new(0);
         public List<Color> Palette { get => _palette; }
         private ProcessingSettings _settings;
 
@@ -17,92 +17,17 @@ namespace Pixelizer.Classes
             _fileData = fileData;
             /*
             using var graphics = Graphics.FromImage(bm);
-
             graphics.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighSpeed;
             graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.Bicubic;
             graphics.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
             */
         }
-
-        private List<Color> GetColors(Bitmap bm)
-        {
-            List<Color> colors = new ();
-            for (int x = 0;  x < bm.Width; x++)
-                for (int y = 0; y < bm.Height; y++)
-                {
-                    colors.Add(bm.GetPixel (x, y));
-                }
-            return colors.ToList();
-        }
-
-
-        
-
-        private Color GetAverageColor(IEnumerable<Color> colors)
-        {
-            return Color.FromArgb(
-                    (int)colors.Average(c => c.R),
-                    (int)colors.Average(c => c.G),
-                    (int)colors.Average(c => c.B)
-                    );
-        }
-
-        /*
-        private List<Color> GetPalette(int colorsCount, List<Color> colors)
-        {
-            //var colorsByCount = colors.GroupBy(c => c.Name);//.Select(g => new { Color = g.Key, Count = g.Count() });
-
-            return colors.ToList();
-
-
-        }
-        */
-        private List<Color> GetPalette(int colorsCount, List<Color> colors)
-        {
-            List<Color> palette = new List<Color>();
-            for (int i = 0; i < colorsCount - 1; i++)
-            {
-                Dictionary<string, int> colorComponentRanges = GetColorsRange(colors);
-
-                KeyValuePair<string, int> colorRange = GetMaxColorRange(colorComponentRanges);
-
-                colors = colors.OrderBy(c => c.GetColorComponent(colorRange.Key)).ToList();
-
-                var mid = colors.Count / 2;
-                var median = (colors.Count % 2 != 0) 
-                    ? colors[mid].GetColorComponent(colorRange.Key) 
-                    : (colors[mid].GetColorComponent(colorRange.Key) + colors[mid-1].GetColorComponent(colorRange.Key)) / 2;
-
-                var aboveMedianColors = colors.TakeWhile(c => c.GetColorComponent(colorRange.Key) < median).ToList();
-                var belowMedianColors = colors.Skip(aboveMedianColors.Count).ToList();
-                (var colorsForPalette, colors) =
-                    GetMaxColorRange(GetColorsRange(aboveMedianColors)).Value < GetMaxColorRange(GetColorsRange(belowMedianColors)).Value
-                    ? (aboveMedianColors, belowMedianColors) : (belowMedianColors, aboveMedianColors);
-                palette.Add(GetAverageColor(colorsForPalette));
-            }
-            palette.Add(GetAverageColor(colors));
-            return palette;
-        }
-
-        private static KeyValuePair<string, int> GetMaxColorRange(Dictionary<string, int> colorComponentRanges)
-        {
-            return colorComponentRanges.OrderByDescending(c => c.Value).First();
-        }
-
-        private static Dictionary<string, int> GetColorsRange(List<Color> colors)
-        {
-            return new Dictionary<string, int>
-                {
-                    { "R", (int) Math.Round((colors.Max(c => c.R) - colors.Min(c => c.R)) * 0.2126)},
-                    { "G", (int) Math.Round((colors.Max(c => c.G) - colors.Min(c => c.G)) * 0.7152)},
-                    { "B", (int) Math.Round((colors.Max(c => c.B) - colors.Min(c => c.B)) * 0.0722)}
-                };
-        }
         
         public ImageProcessor ProcessImage()
         {
             using var _bitmap = new Bitmap(Image.FromStream(_fileData.Data));
-            var colors = GetColors(_bitmap);
+            PaletteExtractor extractor = new KMeansPaletteExtractor(_bitmap);
+            _palette = extractor.GetPalette(_settings.Colors);
             int pixelsPerWidth = _bitmap.Width / _settings.Width;
             int pixelsPerHeight = _bitmap.Height / _settings.Height;
             
@@ -111,8 +36,7 @@ namespace Pixelizer.Classes
             graphics.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighSpeed;
             graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.Bicubic;
             graphics.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
-            //_palette = GetPalette(_settings.Colors, colors);
-
+            
             //todo: here need to be actual processing
 
             for (var rx = 0 ; rx < _settings.Width; rx++)
@@ -124,7 +48,7 @@ namespace Pixelizer.Classes
                         {
                             colorsInPixel.Add(_bitmap.GetPixel(x, y));
                         }
-                    var pixelColor = GetAverageColor(colorsInPixel);
+                    var pixelColor = PaletteExtractor.GetAverageColor(colorsInPixel);
 
                     Brush brush = new SolidBrush(pixelColor);
                     Pen pen = new Pen(brush, Math.Max(pixelsPerWidth, pixelsPerHeight));
