@@ -1,42 +1,25 @@
 ﻿using System.Drawing;
 
-namespace Pixelizer.Classes
+namespace Pixelizer.Classes.PaletteExtractors.KMeansExtractor
 {
     public class KMeansPaletteExtractor : PaletteExtractor
     {
 
-        public float DeltaPrecision = 1f;
+        public float DeltaPrecision = .01f;
+        public bool UseColorsWeights = false;
 
-        private class ClusteredColor
+        private void AddColorWithWeight(ColorCluster cluster, KeyValuePair<Color, int> color)
         {
-            public int R;
-            public int G;
-            public int B;
-            public static implicit operator ClusteredColor (Color c)
-            {
-                return new ClusteredColor { R = c.R, G = c.G, B = c.B };
-            }
-            public static implicit operator Color (ClusteredColor c)
-            {
-                return Color.FromArgb(c.R, c.G, c.B);
-            }
-            public static ClusteredColor operator +(ClusteredColor c1, Color c2)
-            {
-                return new ClusteredColor { R = c1.R + c2.R, G = c1.G + c2.G, B = c1.B + c2.B };
-            }
+            cluster.Count += color.Value;
+            cluster.NewColor.R += color.Key.R * color.Value;
+            cluster.NewColor.G += color.Key.G * color.Value;
+            cluster.NewColor.B += color.Key.B * color.Value;
         }
 
-        private class ColorCluster
+        private void AddColorWithoutWeight(ColorCluster cluster, KeyValuePair<Color, int> color)
         {
-            public Color Color;
-            public ClusteredColor NewColor;
-            public int Count = 0;
-
-            public ColorCluster()
-            {
-                Color = new Color();
-                NewColor = new ClusteredColor();
-            }
+            cluster.Count++;
+            cluster.NewColor += color.Key;
         }
 
         public KMeansPaletteExtractor(Bitmap bitmap) : base(bitmap)
@@ -45,23 +28,21 @@ namespace Pixelizer.Classes
 
         public override List<Color> GetPalette(int colorsCount)
         {
-            Random rnd = new ();
+            Random rnd = new();
             var colors = GetColorsByCount();
             var palette = new ColorCluster[colorsCount];
+
             for (int i = 0; i < colorsCount; i++)
                 palette[i] = new ColorCluster { NewColor = colors.ElementAt(rnd.Next(colors.Count)).Key };
-                //palette[i] = new ColorCluster { NewColor = Color.FromArgb(rnd.Next(0xffffff)) };
 
             float minDelta = 0f;
-            float minDeltaOld = 0;
+            float minDeltaOld = 0f;
             float currentPrecision = 0f;
-            
-            Color color1 = Color.FromArgb(0xff42c6);
-            var d = color1.GetDistance(color1);
+
+            ColorCluster.ColorAddDelegate ColorSumMethod = UseColorsWeights ? AddColorWithWeight : AddColorWithoutWeight;
+
             do
             {
-                minDeltaOld = minDelta;
-
                 for (var i = 0; i < palette.Length; i++)
                 {
                     palette[i].Count = 0;
@@ -74,11 +55,12 @@ namespace Pixelizer.Classes
                     var cluster = palette.MinBy(cluster => color.Key.GetDistance(cluster.Color));
                     if (cluster == null)
                         continue;
-                    cluster.Count++;
-                    cluster.NewColor += color.Key;
+                    cluster.AddColor(color, ColorSumMethod);
                 }
 
+                minDeltaOld = minDelta;
                 minDelta = 0;
+
                 for (var i = 0; i < palette.Length; i++)
                 {
                     var count = palette[i].Count;

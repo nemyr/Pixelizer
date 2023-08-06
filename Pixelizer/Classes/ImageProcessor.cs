@@ -1,6 +1,7 @@
 ﻿using Pixelizer.Data;
 using System.Drawing.Imaging;
 using System.Drawing;
+using Pixelizer.Classes.PaletteExtractors.KMeansExtractor;
 
 namespace Pixelizer.Classes
 {
@@ -31,8 +32,9 @@ namespace Pixelizer.Classes
             int pixelsPerWidth = _bitmap.Width / _settings.Width;
             int pixelsPerHeight = _bitmap.Height / _settings.Height;
             
-            using var resultBitmap = new Bitmap(pixelsPerWidth * _settings.Width, pixelsPerHeight* _settings.Height );
+            using var resultBitmap = new Bitmap(pixelsPerWidth * _settings.Width, pixelsPerHeight * _settings.Height );
             using var graphics = Graphics.FromImage(resultBitmap);
+
             graphics.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighSpeed;
             graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.Bicubic;
             graphics.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
@@ -48,7 +50,8 @@ namespace Pixelizer.Classes
                         {
                             colorsInPixel.Add(_bitmap.GetPixel(x, y));
                         }
-                    var pixelColor = PaletteExtractor.GetAverageColor(colorsInPixel);
+                    var avgColor = PaletteExtractor.GetAverageColor(colorsInPixel);
+                    var pixelColor = _palette.MinBy(c => c.GetDistance(avgColor));
 
                     Brush brush = new SolidBrush(pixelColor);
                     Pen pen = new Pen(brush, Math.Max(pixelsPerWidth, pixelsPerHeight));

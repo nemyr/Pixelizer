@@ -1,6 +1,6 @@
 ﻿using System.Drawing;
 
-namespace Pixelizer.Classes
+namespace Pixelizer.Classes.PaletteExtractors
 {
     public class MedianCutExtractor : PaletteExtractor
     {
@@ -21,7 +21,7 @@ namespace Pixelizer.Classes
                 colors = colors.OrderBy(c => c.GetColorComponent(colorRange.Key)).ToList();
 
                 var mid = colors.Count / 2;
-                var median = (colors.Count % 2 != 0)
+                var median = colors.Count % 2 != 0
                     ? colors[mid].GetColorComponent(colorRange.Key)
                     : (colors[mid].GetColorComponent(colorRange.Key) + colors[mid - 1].GetColorComponent(colorRange.Key)) / 2;
 

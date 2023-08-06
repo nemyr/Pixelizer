@@ -35,6 +35,13 @@ namespace Pixelizer.Classes
             return colors.ToList();
         }
 
+        protected void GetColors(ref ICollection<Color> colors)
+        {
+            for (int x = 0; x < bitmap.Width; x++)
+                for (int y = 0; y < bitmap.Height; y++)
+                    colors.Add(bitmap.GetPixel(x, y));
+        }
+
         protected Dictionary<Color, int> GetColorsByCount()
         {
             var colors = GetColors();
