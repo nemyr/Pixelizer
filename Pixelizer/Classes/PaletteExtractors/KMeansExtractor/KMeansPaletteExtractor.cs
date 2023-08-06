@@ -39,7 +39,7 @@ namespace Pixelizer.Classes.PaletteExtractors.KMeansExtractor
             float minDeltaOld = 0f;
             float currentPrecision = 0f;
 
-            ColorCluster.ColorAddDelegate ColorSumMethod = UseColorsWeights ? AddColorWithWeight : AddColorWithoutWeight;
+            Action<ColorCluster, KeyValuePair<Color, int>> ColorSumMethod = UseColorsWeights ? AddColorWithWeight : AddColorWithoutWeight;
 
             do
             {
@@ -55,7 +55,7 @@ namespace Pixelizer.Classes.PaletteExtractors.KMeansExtractor
                     var cluster = palette.MinBy(cluster => color.Key.GetDistance(cluster.Color));
                     if (cluster == null)
                         continue;
-                    cluster.AddColor(color, ColorSumMethod);
+                    cluster.AddColor(cluster => ColorSumMethod(cluster, color));
                 }
 
                 minDeltaOld = minDelta;

@@ -14,11 +14,9 @@ namespace Pixelizer.Classes.PaletteExtractors.KMeansExtractor
             NewColor = new ClusteredColor();
         }
 
-        public delegate void ColorAddDelegate(ColorCluster cluster, KeyValuePair<Color, int> color);
-
-        public void AddColor(KeyValuePair<Color, int> color, ColorAddDelegate d)
+        public void AddColor(Action<ColorCluster> addMethod)
         {
-            d?.Invoke(this, color);
+            addMethod?.Invoke(this);
         }
     }
 }
