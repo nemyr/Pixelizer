@@ -1,7 +1,8 @@
-﻿using Pixelizer.Data;
-using System.Drawing.Imaging;
+﻿using Pixelizer.Classes.PaletteExtractors.KMeansExtractor;
+using Pixelizer.Data;
+using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
-using Pixelizer.Classes.PaletteExtractors.KMeansExtractor;
+using System.Drawing.Imaging;
 
 namespace Pixelizer.Classes
 {
@@ -13,67 +14,73 @@ namespace Pixelizer.Classes
         public List<Color> Palette { get => _palette; }
         private ProcessingSettings _settings;
 
-        public ImageProcessor(ProcessingSettings settings, FileData fileData) { 
+        public ImageProcessor(ProcessingSettings settings, FileData fileData) {
             _settings = settings;
             _fileData = fileData;
-            /*
-            using var graphics = Graphics.FromImage(bm);
-            graphics.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighSpeed;
-            graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.Bicubic;
-            graphics.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
-            */
         }
-        
+
         public ImageProcessor ProcessImage()
         {
             using var _bitmap = new Bitmap(Image.FromStream(_fileData.Data));
-            PaletteExtractor extractor = new KMeansPaletteExtractor(_bitmap);
-            _palette = extractor.GetPalette(_settings.Colors);
+            if (_settings.UseGrayscale)
+                BitmapToGrayscale(_bitmap);
+            _palette.Clear();
             int pixelsPerWidth = _bitmap.Width / _settings.Width;
             int pixelsPerHeight = _bitmap.Height / _settings.Height;
-            
-            using var resultBitmap = new Bitmap(pixelsPerWidth * _settings.Width, pixelsPerHeight * _settings.Height );
+
+            var aspect = Math.Min(pixelsPerWidth, pixelsPerHeight);
+            _settings.Width = _bitmap.Width / aspect;
+            _settings.Height = _bitmap.Height / aspect;
+
+            Color[,] resultMatrix = new Color[_settings.Width, _settings.Height];
+
+            //todo: here need to be actual processing
+
+            List<Color> colorsInPixel = new(aspect * aspect);
+
+            for (var rx = 0; rx < _settings.Width; rx++)
+                for (var ry = 0; ry < _settings.Height; ry++)
+                {
+                    for (var x = rx * aspect; x < (rx * aspect + aspect); x++)
+                        for (var y = ry * aspect; y < (ry * aspect + aspect); y++)
+                            colorsInPixel.Add(_bitmap.GetPixel(x, y));
+                    resultMatrix[rx, ry] = PaletteExtractor.GetAverageColor(colorsInPixel);
+                    colorsInPixel.Clear();
+                }
+            this._resultImage = GetResultImage(aspect, resultMatrix, _bitmap);
+            return this;
+        }
+
+        private byte[] GetResultImage(int aspect, Color[,] pixels, Bitmap bitmap)
+        {
+            using var resultBitmap = new Bitmap(aspect * _settings.Width, aspect * _settings.Height);
             using var graphics = Graphics.FromImage(resultBitmap);
+
+            IPaletteExtractor extractor = new KMeansPaletteExtractor(bitmap);
+
+            Func<Color, Color> pickColor;
+            if (_settings.UsePalette)
+            {
+                _palette = extractor.GetPalette(_settings.Colors);
+                pickColor = (col) => { return _palette.MinBy(c => c.GetDistance(col)); };
+            } 
+            else
+                pickColor = (col) => { return col; };
 
             graphics.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighSpeed;
             graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.Bicubic;
             graphics.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
-            
-            //todo: here need to be actual processing
 
-            for (var rx = 0 ; rx < _settings.Width; rx++)
-                for (var ry = 0 ; ry < _settings.Height; ry++)
+            Brush brush = new SolidBrush(Color.Black);
+            Pen pen = new Pen(brush, aspect);
+            for (var rx = 0; rx < _settings.Width; rx++)
+                for (var ry = 0; ry < _settings.Height; ry++)
                 {
-                    List<Color> colorsInPixel = new List<Color>();
-                    for(var x = rx * pixelsPerWidth ; x < rx * pixelsPerWidth + pixelsPerWidth; x++)
-                        for (var y = ry * pixelsPerHeight ; y < ry * pixelsPerHeight + pixelsPerHeight; y++)
-                        {
-                            colorsInPixel.Add(_bitmap.GetPixel(x, y));
-                        }
-                    var avgColor = PaletteExtractor.GetAverageColor(colorsInPixel);
-                    var pixelColor = _palette.MinBy(c => c.GetDistance(avgColor));
-
-                    Brush brush = new SolidBrush(pixelColor);
-                    Pen pen = new Pen(brush, Math.Max(pixelsPerWidth, pixelsPerHeight));
-                    graphics.DrawRectangle(pen, rx * pixelsPerWidth, ry * pixelsPerHeight, pixelsPerWidth, pixelsPerHeight);
+                    pen.Color = pickColor(pixels[rx, ry]);
+                    graphics.DrawRectangle(pen, rx * aspect, ry * aspect, aspect, aspect);
                 }
 
-            /*
-            for (int x = 0; x < _bitmap.Width; x++)
-                for (int y = 0; y < _bitmap.Height; y++)
-                {
-                    var px = _bitmap.GetPixel(x, y);
-                    var t = System.Drawing.Color.FromArgb(
-                        (int)(_settings.GrayscaleLevels.Red * px.R),
-                        (int)(_settings.GrayscaleLevels.Green * px.G),
-                        (int)(_settings.GrayscaleLevels.Blue * px.B));
-                    _bitmap.SetPixel(x, y, t);
-                    t.Equals (t);
-                }
-            //      graphics.DrawRectangle(p, 1, 1, 100, 100);
-            */
             using var output = new MemoryStream();
-
             var qualityParamId = Encoder.Quality;
             var encoderParameters = new EncoderParameters(1);
             encoderParameters.Param[0] = new EncoderParameter(qualityParamId, _settings.Quality);
@@ -83,9 +90,16 @@ namespace Pixelizer.Classes
 
             resultBitmap.Save(output, codec, encoderParameters);
 
-            _resultImage = output.ToArray();
-            return this;
+            return output.ToArray();
         }
+
+        private void BitmapToGrayscale(Bitmap bitmap)
+        {
+            for ( int x = 0; x < bitmap.Width; x++ )
+                for (int y = 0; y < bitmap.Height; y++ )
+                    bitmap.SetPixel(x, y, bitmap.GetPixel(x,y).AsGrayScale(_settings.GrayscaleLevels));
+        }
+
 
         public byte[] AsArray()
         {

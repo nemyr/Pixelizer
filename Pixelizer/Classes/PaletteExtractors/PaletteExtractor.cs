@@ -1,8 +1,9 @@
-﻿using System.Drawing;
+﻿using Pixelizer.Classes.PaletteExtractors;
+using System.Drawing;
 
 namespace Pixelizer.Classes
 {
-    public abstract class PaletteExtractor
+    public abstract class PaletteExtractor : IPaletteExtractor
     {
         protected readonly Bitmap bitmap;
 
