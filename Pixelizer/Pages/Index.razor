@@ -1,6 +1,4 @@
 ﻿@page "/"
-@using System.Drawing;
-@using System.Drawing.Imaging;
 @using Components;
 @using Pixelizer.Classes;
 @using Pixelizer.Data;
@@ -11,22 +9,16 @@
         <FileUploader OnFileChange="UploadFiles" />
     </MudItem>
     <MudItem xs="4">
-        <MudSlider T="float" @bind-Value="settings.GrayscaleLevels.Red" Max="1.0f" Step="0.01f">
-            Red: @settings.GrayscaleLevels.Red.ToString("F2")
-        </MudSlider>
-        <MudSlider T="float" @bind-Value="settings.GrayscaleLevels.Green" Max="1.0f" Step="0.01f">
-            Green: @settings.GrayscaleLevels.Green.ToString("F2")
-        </MudSlider>
-        <MudSlider T="float" @bind-Value="settings.GrayscaleLevels.Blue" Max="1.0f" Step="0.01f">
-            Blue: @settings.GrayscaleLevels.Blue.ToString("F2")
-        </MudSlider>
+        <MudCheckBox @bind-Checked="settings.UseGrayscale"> Use grayscale </MudCheckBox>
+        <MudCheckBox @bind-Checked="settings.UsePalette"> Use palette </MudCheckBox>
     </MudItem>
     <MudItem xs="4">
-        <MudSlider T="int" @bind-Value="settings.Colors" Min="2" Max="15" Step="1">
+        <MudSlider T="int" @bind-Value="settings.Colors" Min="2" Max="15" Step="1" Disabled="@(!settings.UsePalette)">
             Number of colors: @settings.Colors.ToString()
         </MudSlider>
+        
     </MudItem>
-    <MudItem xs="12">
+    <MudItem xs="4">
         <MudSlider T="int" @bind-Value="settings.Width" Min="10" Max="80">
             Width: @settings.Width
         </MudSlider>
@@ -34,8 +26,14 @@
             Height: @settings.Height
         </MudSlider>
     </MudItem>
-    <MudItem xs="4">
-        <MudButton OnClick="ProcessImage">process</MudButton>
+    <MudItem xs="12">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" OnClick="ProcessImage" Disabled="@DisableProcess">Process</MudButton>
+    </MudItem>
+    <MudItem xs="6">
+        <MudImage Src="@SourceImage" Height="400"> </MudImage>
+    </MudItem>
+    <MudItem xs="6">
+        <MudImage Src="@ResultImage" Height="400"> </MudImage>
     </MudItem>
     <MudItem xs="12">
         <MudGrid Justify="Justify.FlexStart">
@@ -48,19 +46,12 @@
                 }
         </MudGrid>
     </MudItem>
-
-    <MudItem xs="6">
-        <MudImage Src="@SourceImage" Height="400"> </MudImage>
-    </MudItem>
-    <MudItem xs="6">
-        <MudImage Src="@ResultImage" Height="400"> </MudImage>
-    </MudItem>
-    
 </MudGrid>
 
 @code{
     public ProcessingSettings settings = new ProcessingSettings();
-    private ImageProcessor imageProcessor; 
+    private ImageProcessor imageProcessor;
+    private bool DisableProcess = true;
 
     string SourceImage = "Files/placeholder.png";
     string ResultImage = "Files/placeholder.png";
@@ -72,7 +63,7 @@
             SourceImage = ByteArrayToImage(fileData.Data.ToArray(), Path.GetExtension(fileData.FileName).Replace(".",""));
             imageProcessor = new ImageProcessor(settings, fileData);
             ResultImage = imageProcessor.ProcessImage().AsBase64();
-            //ProcessImage(fileData.Data);
+            DisableProcess = false;
         } catch (Exception ex)
         {
             Console.WriteLine(ex.Message);
