@@ -1,4 +1,4 @@
-﻿using System.Drawing;
+﻿using Pixelizer.Classes.Drawers;
 
 namespace Pixelizer.Classes.PaletteExtractors.KMeansExtractor
 {
@@ -13,7 +13,7 @@ namespace Pixelizer.Classes.PaletteExtractors.KMeansExtractor
         }
         public static implicit operator Color(ClusteredColor c)
         {
-            return Color.FromArgb(c.R, c.G, c.B);
+            return (Color)Color.FromRGB((byte)c.R, (byte)c.G, (byte)c.B);
         }
         public static ClusteredColor operator +(ClusteredColor c1, Color c2)
         {

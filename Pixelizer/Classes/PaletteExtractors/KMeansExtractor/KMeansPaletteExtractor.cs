@@ -1,4 +1,4 @@
-﻿using System.Drawing;
+﻿using Pixelizer.Classes.Drawers;
 
 namespace Pixelizer.Classes.PaletteExtractors.KMeansExtractor
 {
@@ -22,7 +22,7 @@ namespace Pixelizer.Classes.PaletteExtractors.KMeansExtractor
             cluster.NewColor += color.Key;
         }
 
-        public KMeansPaletteExtractor(Bitmap bitmap) : base(bitmap)
+        public KMeansPaletteExtractor(IDrawer bitmap) : base(bitmap)
         {
         }
 
@@ -47,7 +47,7 @@ namespace Pixelizer.Classes.PaletteExtractors.KMeansExtractor
                 {
                     palette[i].Count = 0;
                     palette[i].Color = palette[i].NewColor;
-                    palette[i].NewColor = Color.Black;
+                    palette[i].NewColor = (ClusteredColor)Color.FromRGB(0, 0, 0);
                 }
 
                 foreach (var color in colors)
@@ -65,7 +65,7 @@ namespace Pixelizer.Classes.PaletteExtractors.KMeansExtractor
                 {
                     var count = palette[i].Count;
                     if (count == 0)
-                        palette[i].NewColor = palette[i].Color;
+                        palette[i].NewColor = (ClusteredColor)palette[i].Color;
                     else
                     {
                         palette[i].NewColor.R /= count;

@@ -1,8 +1,6 @@
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Hosting.StaticWebAssets;
 using MudBlazor.Services;
-using Pixelizer.Data;
+using Pixelizer.Classes.Drawers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +10,7 @@ StaticWebAssetsLoader.UseStaticWebAssets(builder.Environment, builder.Configurat
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddMudServices();
+builder.Services.AddTransient<IDrawer, MicrosoftBitmapDrawer>();
 
 var app = builder.Build();
 

@@ -1,13 +1,12 @@
-﻿using Pixelizer.Classes.PaletteExtractors;
-using System.Drawing;
+﻿using Pixelizer.Classes.Drawers;
 
 namespace Pixelizer.Classes
 {
     public abstract class PaletteExtractor : IPaletteExtractor
     {
-        protected readonly Bitmap bitmap;
+        protected readonly IDrawer bitmap;
 
-        public PaletteExtractor(Bitmap bitmap)
+        public PaletteExtractor(IDrawer bitmap)
         {
             this.bitmap = bitmap;
         }
@@ -51,10 +50,10 @@ namespace Pixelizer.Classes
 
         public static Color GetAverageColor(IEnumerable<Color> colors)
         {
-            return Color.FromArgb(
-                    (int)colors.Average(c => c.R),
-                    (int)colors.Average(c => c.G),
-                    (int)colors.Average(c => c.B)
+            return Color.FromRGB(
+                    (byte)colors.Average(c => c.R),
+                    (byte)colors.Average(c => c.G),
+                    (byte)colors.Average(c => c.B)
                     );
         }
     }

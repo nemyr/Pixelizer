@@ -2,6 +2,7 @@
 
 namespace Pixelizer.Classes.PaletteExtractors
 {
+    /*
     public class MedianCutExtractor : PaletteExtractor
     {
         public MedianCutExtractor(Bitmap bitmap) : base(bitmap)
@@ -41,4 +42,5 @@ namespace Pixelizer.Classes.PaletteExtractors
             return colorComponentRanges.OrderByDescending(c => c.Value).First();
         }
     }
+    */
 }

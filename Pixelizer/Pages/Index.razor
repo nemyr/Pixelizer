@@ -1,7 +1,10 @@
 ﻿@page "/"
 @using Components;
 @using Pixelizer.Classes;
+@using Pixelizer.Classes.Drawers;
+@using Pixelizer.Classes.PaletteExtractors.KMeansExtractor;
 @using Pixelizer.Data;
+@inject IDrawer drawer;
 
 <PageTitle>Index</PageTitle>
 <MudGrid>
@@ -27,7 +30,7 @@
         </MudSlider>
     </MudItem>
     <MudItem xs="12">
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" OnClick="ProcessImage" Disabled="@DisableProcess">Process</MudButton>
+        <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" FullWidth="true" OnClick="ProcessImage" Disabled="@DisableProcess">Process</MudButton>
     </MudItem>
     <MudItem xs="6">
         <MudImage Src="@SourceImage" Height="400"> </MudImage>
@@ -52,6 +55,7 @@
     public ProcessingSettings settings = new ProcessingSettings();
     private ImageProcessor imageProcessor;
     private bool DisableProcess = true;
+    private FileData _fileData;
 
     string SourceImage = "Files/placeholder.png";
     string ResultImage = "Files/placeholder.png";
@@ -60,9 +64,11 @@
     {
         try
         {
+            _fileData = fileData;
             SourceImage = ByteArrayToImage(fileData.Data.ToArray(), Path.GetExtension(fileData.FileName).Replace(".",""));
-            imageProcessor = new ImageProcessor(settings, fileData);
-            ResultImage = imageProcessor.ProcessImage().AsBase64();
+
+            imageProcessor = new ImageProcessor(settings, drawer, new KMeansPaletteExtractor(drawer));
+            ResultImage = imageProcessor.ProcessImage(fileData).AsBase64();
             DisableProcess = false;
         } catch (Exception ex)
         {
@@ -80,7 +86,7 @@
     {
         if (imageProcessor == null)
             return;
-        ResultImage = imageProcessor.ProcessImage().AsBase64();
+        ResultImage = imageProcessor.ProcessImage(_fileData).AsBase64();
         StateHasChanged();
     }
 }
