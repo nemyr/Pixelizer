@@ -80,7 +80,6 @@ namespace Pixelizer.Classes.PaletteExtractors.KMeansExtractor
                 currentPrecision = Math.Abs(minDelta - minDeltaOld);
 
             } while (currentPrecision > DeltaPrecision);
-
             return palette.Select(c => c.Color).ToList();
         }
     }

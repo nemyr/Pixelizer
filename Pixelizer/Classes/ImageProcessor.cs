@@ -73,11 +73,6 @@ namespace Pixelizer.Classes
                     drawer.SetPixel(x, y, drawer.GetPixel(x,y).AsGrayScale(_settings.GrayscaleLevels));
         }
 
-        public byte[] AsArray()
-        {
-            return _resultImage;
-        }
-
         public string AsBase64()
         {
             string result = Convert.ToBase64String(_resultImage);

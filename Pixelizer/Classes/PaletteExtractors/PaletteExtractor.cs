@@ -23,29 +23,20 @@ namespace Pixelizer.Classes
                 };
         }
 
-
-        protected List<Color> GetColors()
+        protected Dictionary<Color, int> GetColorsByCount()
         {
-            List<Color> colors = new();
+            Dictionary<Color, int> result = [];
+
             for (int x = 0; x < bitmap.Width; x++)
                 for (int y = 0; y < bitmap.Height; y++)
                 {
-                    colors.Add(bitmap.GetPixel(x, y));
+                    var pixel = bitmap.GetPixel(x, y);
+                    if (result.TryGetValue(pixel, out int value))
+                        result[pixel] = ++value;
+                    else
+                        result[pixel] = 1;
                 }
-            return colors.ToList();
-        }
-
-        protected void GetColors(ref ICollection<Color> colors)
-        {
-            for (int x = 0; x < bitmap.Width; x++)
-                for (int y = 0; y < bitmap.Height; y++)
-                    colors.Add(bitmap.GetPixel(x, y));
-        }
-
-        protected Dictionary<Color, int> GetColorsByCount()
-        {
-            var colors = GetColors();
-            return colors.GroupBy(c => c).ToDictionary(k => k.Key, v => v.Count());
+            return result;
         }
 
         public static Color GetAverageColor(IEnumerable<Color> colors)

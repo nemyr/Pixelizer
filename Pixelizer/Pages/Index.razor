@@ -65,7 +65,7 @@
         try
         {
             _fileData = fileData;
-            SourceImage = ByteArrayToImage(fileData.Data.ToArray(), Path.GetExtension(fileData.FileName).Replace(".",""));
+            SourceImage = ByteArrayToImage(fileData.Data.GetBuffer(), Path.GetExtension(fileData.FileName).Replace(".",""));
 
             imageProcessor = new ImageProcessor(settings, drawer, new KMeansPaletteExtractor(drawer));
             ResultImage = imageProcessor.ProcessImage(fileData).AsBase64();

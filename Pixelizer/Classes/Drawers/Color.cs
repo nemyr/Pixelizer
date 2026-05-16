@@ -2,7 +2,7 @@
 
 namespace Pixelizer.Classes.Drawers
 {
-    public class Color
+    public struct Color
     {
         public byte R { get; set; }
         public byte G { get; set; }

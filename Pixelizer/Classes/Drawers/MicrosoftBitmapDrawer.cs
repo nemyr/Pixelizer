@@ -4,17 +4,12 @@ using System.Drawing.Imaging;
 
 namespace Pixelizer.Classes.Drawers
 {
-    public class MicrosoftBitmapDrawer : Drawer
+    public class MicrosoftBitmapDrawer : Drawer, IDisposable
     {
         public override int Width { get => _bitmap.Width; }
         public override int Height { get => _bitmap.Height; }
 
         private Bitmap _bitmap;
-
-        public override void Dispose()
-        {
-            _bitmap?.Dispose();
-        }
 
         public override Color GetPixel(int x, int y)
         {
@@ -24,7 +19,8 @@ namespace Pixelizer.Classes.Drawers
 
         public override void LoadImage(FileData fileData)
         {
-            _bitmap = new Bitmap(Image.FromStream(fileData.Data));
+            using var image = Image.FromStream(fileData.Data);
+            _bitmap = new Bitmap(image);
         }
 
         public override void SetPixel(int x, int y, Color color)
@@ -57,6 +53,11 @@ namespace Pixelizer.Classes.Drawers
             using var output = new MemoryStream();
             resultBitmap.Save(output, ImageFormat.Png);
             return output.ToArray();
+        }
+
+        public void Dispose()
+        {
+            _bitmap?.Dispose();
         }
     }
 }
